@@ -240,7 +240,7 @@ uint16_t DataFlash_File::find_last_log(void)
     if (f != NULL) {
         char buf[10];
         memset(buf, 0, sizeof(buf));
-        // VRBRAIN doesn't have fscanf()
+        // PX4 doesn't have fscanf()
         if (fread(buf, 1, sizeof(buf)-1, f) > 0) {
             sscanf(buf, "%u", &ret);            
         }
@@ -327,8 +327,8 @@ int16_t DataFlash_File::get_log_data(uint16_t log_num, uint16_t page, uint32_t o
       bug. We can remove this once we find the real bug.
     */
     if (ofs / 4096 != (ofs+len) / 4096) {
-        int seek_current = ::lseek(_read_fd, 0, SEEK_CUR);
-        if (seek_current != _read_offset) {
+        off_t seek_current = ::lseek(_read_fd, 0, SEEK_CUR);
+        if (seek_current != (off_t)_read_offset) {
             ::lseek(_read_fd, _read_offset, SEEK_SET);
         }
     }
