@@ -21,20 +21,6 @@ set MODE autostart
 set USB autoconnect
 
 #
-
-#
-
-
-
-
-
-
-
-
-
-
-
-#
 # Try to mount the microSD card.
 #
 echo "[init] looking for microSD..."
@@ -49,10 +35,6 @@ else
         set HAVE_MICROSD 0
 	# Play SOS
 	tone_alarm 2
-
-
-
-
 fi
 
 #
@@ -88,13 +70,28 @@ else
 	fi
 fi
 
-# if this is an APM build then there will be a rc.APM script
-# from an EXTERNAL_SCRIPTS build option
-if [ -f /etc/init.d/rc.APM -a $HAVE_MICROSD == 1 -a ! -f /fs/microsd/APM/nostart ]
+if [ $HAVE_MICROSD == 1 ]
 then
-	echo Running rc.APM
-	# if APM startup is successful then nsh will exit
-	sh /etc/init.d/rc.APM
-else
+	if [ ! -f /fs/microsd/APM/nostart ]
+	then
+		if [ -f /etc/init.d/rc.APM ]
+		then
+			echo "[init] Running rc.APM"
+			# if APM startup is successful then nsh will exit
+			sh /etc/init.d/rc.APM
+		else
+	        nshterm /dev/ttyACM0 &
+		fi
+	else
         nshterm /dev/ttyACM0 &
+	fi
+else
+	if [ -f /etc/init.d/rc.APMNS ]
+	then
+		echo "[init] Running rc.APM without SD"
+		# if APM startup is successful then nsh will exit
+		sh /etc/init.d/rc.APMNS
+	else
+        nshterm /dev/ttyACM0 &
+	fi
 fi

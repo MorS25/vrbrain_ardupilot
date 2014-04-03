@@ -4,215 +4,145 @@
 
 # To disable APM startup add a /fs/microsd/APM/nostart file
 
-
-
-set deviceA /dev/ttyACM0
-
 # check for an old file called APM, caused by 
 # a bug in an earlier firmware release
 if [ -f /fs/microsd/APM ]
 then
-   echo "APM file found - renaming"
+   echo "[APM] APM file found - renaming"
    mv /fs/microsd/APM /fs/microsd/APM.old
 fi
 
 if [ -f /fs/microsd/APM/nostart ]
 then
-   echo "APM/nostart found - skipping APM startup"
+   echo "[APM] APM/nostart found - skipping APM startup"
    sh /etc/init.d/rc.error
 fi
 
 # mount binfs so we can find the built-in apps
 if [ -f /bin/reboot ]
 then
-	echo "binfs already mounted"
+	echo "[APM] binfs already mounted"
 else
-	echo "Mounting binfs"
-        if mount -t binfs /dev/null /bin
-        then
-                echo "binfs mounted OK"
-        else
-                sh /etc/init.d/rc.error
-        fi
+	echo "[APM] Mounting binfs"
+    if mount -t binfs /dev/null /bin
+    then
+        echo "[APM] binfs mounted OK"
+    else
+        sh /etc/init.d/rc.error
+    fi
 fi
 
-set sketch NONE
 if rm /fs/microsd/APM/boot.log
 then
-   echo "removed old boot.log"
+   echo "[APM] Removed old boot.log"
 fi
 set logfile /fs/microsd/APM/BOOT.LOG
 
 if [ ! -f /bin/ArduPilot ]
 then
-   echo "/bin/ardupilot not found"
+   echo "[APM] /bin/ArduPilot not found"
    sh /etc/init.d/rc.error
 fi
 
 if mkdir /fs/microsd/APM > /dev/null
 then
-     echo "Created APM directory"
+     echo "[APM] Created APM directory"
 fi
 
+echo "[APM] Starting UORB"
 if uorb start
 then
-    echo "uorb started OK"
+    echo "[APM] UORB started OK"
 else
     sh /etc/init.d/rc.error
 fi
 
-
-
-echo "Starting APM sensors"
-if ms5611 start
-then
-    echo "ms5611 started OK"
-else
-    sh /etc/init.d/rc.error
-fi
-
+echo "[APM] Starting ADC"
 if adc start
 then
-    echo "adc started OK"
+    echo "[APM] ADC started OK"
 else
     sh /etc/init.d/rc.error
 fi
 
+echo "[APM] Starting APM sensors"
+if ms5611 start
+then
+    echo "[APM] MS5611 started OK"
+else
+    echo "[APM] MS5611 start failed"
+    sh /etc/init.d/rc.error
+fi
 
+if hmc5883 start
+then
+    echo "[APM] HMC5883 started OK"
+else
+    echo "[APM] HMC5883 start failed"
+    sh /etc/init.d/rc.error
+fi
 
+if mpu6000 start
+then
+    echo "[APM] MPU6000 started OK"
+else
+    echo "[APM] MPU6000 start failed"
+    sh /etc/init.d/rc.error
+fi
 
-    if hmc5883 start
-    then
-        echo "hmc5883 started OK"
-#        if hmc5883 calibrate
-#        then
-#          echo "hmc5883 calibrate OK"
-#        else 
-#          echo "hmc5883 calibrate failed"
-#          echo "hmc5883 calibrate failed" >> $logfile
-#          tone_alarm MSBBB
-#        fi
-    else
-        echo "hmc5883 start failed"
-        echo "hmc5883 start failed" >> $logfile
-        sh /etc/init.d/rc.error
-    fi
-    if mpu6000 start
-    then
-       echo "mpu6000  started OK"
-    else
-       sh /etc/init.d/rc.error
-    fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+echo "[APM] Starting MTD driver"
 if mtd start /fs/mtd
 then
-    echo "started mtd driver OK"
+    echo "[APM] MTD driver started OK"
 else
-    echo "failed to start mtd driver"
-    echo "failed to start mtd driver" >> $logfile
+    echo "[APM] MTD driver start failed"
     sh /etc/init.d/rc.error           
 fi
 
+echo "[APM] MTD driver read test"
 if mtd readtest /fs/mtd
 then
-    echo "mtd readtest OK"
+    echo "[APM] MTD driver readtest OK"
 else
-    echo "failed to read mtd"
-    echo "failed to read mtd" >> $logfile
+    echo "[APM] MTD driver failed to read"
     sh /etc/init.d/rc.error           
 fi
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+echo "[APM] Starting VROUTPUT driver"
 vroutput mode_pwm
-vrinput start
+#if vroutput mode_pwm
+#then
+#    echo "[APM] VROUTPUT driver started OK"
+#else
+#    echo "[APM] VROUTPUT driver start failed"
+#    sh /etc/init.d/rc.error           
+#fi
 
+echo "[APM] Starting VRINPUT driver"
+vrinput start
+#if vrinput start
+#then
+#    echo "[APM] VRINPUT driver started OK"
+#else
+#    echo "[APM] VRINPUT driver start failed"
+#    sh /etc/init.d/rc.error           
+#fi
+
+set sketch NONE
+set deviceA /dev/ttyACM0
 set deviceC /dev/ttyS2
 
-echo Starting ArduPilot $deviceA $deviceC
+echo "[APM] Starting ArduPilot" $deviceA $deviceC
 if ArduPilot -d $deviceA -d2 $deviceC start
 then
-    echo ArduPilot started OK
+    echo "[APM] ArduPilot started OK"
 else
+    echo "[APM] ArduPilot start failed"
     sh /etc/init.d/rc.error
 fi
 
-# if starting on the console, tell nsh to exit
-# this prevents it from chewing bytes
-#if [ $deviceC == /dev/ttyS0 ]
-#then
-	echo "Exiting from nsh shell"
-	exit
-#fi
+echo "[APM] Exiting from nsh shell"
+exit
 
-echo "rc.APM finished"
+echo "[APM] Script finished"
 
