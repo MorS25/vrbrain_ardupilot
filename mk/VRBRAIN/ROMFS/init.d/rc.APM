@@ -193,7 +193,8 @@ fi
 
 
 
-fmu mode_pwm
+vroutput mode_pwm
+vrinput start
 
 set deviceC /dev/ttyS2
 
